@@ -12,7 +12,7 @@ including tab completion.
 
 ## Workflow
 
-These steps describe the workflow using the module function, 
+These steps describe the workflow using the module functions, 
 of course you are supposed to assign keymap to those. The 
 recommended ones are at the end of the readme.
 
