@@ -3,16 +3,17 @@ local M = {
 	term_win = nil,
 	term_buf = nil,
 	term_id = nil,
-	term_command = 'pytest -s test.py',
+	base_term_command = 'pytest -s ',
+	term_command = 'pytest -s ',
 	break_point_string = "import IPython; IPython.embed()",
 	how_to_open = 'vsplit',
 	exit_command = 'exit()',
 	print_command = "print",
+	repl_init_script = '%autoindent',
 	cancel_command_char_sequence = '\x03', -- CTRL + C
 	start_multiline_char_sequence = '\x0f', -- CTRL + O
 	end_multiline_char_sequence = '\n\n\n' -- alt + enter 
 }
-
 
 local function all_trim(s)
    return s:match( "^%s*(.-)%s*$" )
@@ -30,13 +31,6 @@ local function add_break_point()
 		false,
 		{tab_prefix .. all_trim(M.break_point_string)  }
 	)
-	vim.api.nvim_buf_set_lines(
-		0,
-		current_row_number,
-		current_row_number,
-		false,
-		{tab_prefix}
-	)
 	vim.cmd("normal! k")
 	vim.cmd("w")
 end
@@ -52,7 +46,6 @@ local function open_debug_terminal()
 end
 
 local function close_term()
-	vim.fn.chansend(M.my_term_id, "\n" .. M.exit_command .. "\n")
 	vim.api.nvim_win_close(M.term_win, true)
 	M.text_win = nil
 	M.term_win = nil
@@ -61,7 +54,7 @@ local function close_term()
 end
 
 local function remove_break_point()
-	vim.cmd("g/" .. M.break_point_string .. "/d" ) --remove lines containing string
+	vim.cmd("g/" .. M.break_point_string .. "$/d" ) --remove lines containing string
 	vim.cmd("noh") -- clear the hilight
 	vim.cmd("w")
 end
@@ -81,7 +74,13 @@ local function get_visual_selection()
 	return table.concat(lines, '\n')
 end
 
-
+local function remove_ipython_unicompatible_whitespace(s)
+	local tab_prefix = s:match("%s*")
+	return s
+		:gsub("^".. tab_prefix, "") -- remove first indentation
+		:gsub("\n".. tab_prefix, "\n") -- remove indentation on other lines
+		:gsub("\n+", "\n") -- remove double \n
+end
 
 local function current_line_trimed()
 	local row_number = tonumber(vim.api.nvim_win_get_cursor(0)[1])
@@ -92,6 +91,7 @@ end
 function M.open_debug_term()
 	add_break_point()
 	open_debug_terminal()
+    vim.fn.chansend(M.my_term_id, M.repl_init_script .. "\n")
 end
 
 
@@ -104,8 +104,9 @@ function M.run_selected_text()
 	vim.fn.chansend(M.my_term_id, M.cancel_command_char_sequence)
 	vim.fn.chansend(M.my_term_id, M.cancel_command_char_sequence)
     vim.fn.chansend(M.my_term_id, M.start_multiline_char_sequence
-		.. get_visual_selection():gsub("\n+", "\n")
+		.. remove_ipython_unicompatible_whitespace(get_visual_selection())
 		.. M.end_multiline_char_sequence)
+	vim.fn.win_execute(M.term_win, "normal! G")
 end
 
 
@@ -119,6 +120,7 @@ function M.execute()
 	vim.fn.chansend(M.my_term_id, M.cancel_command_char_sequence)
 	vim.fn.chansend(M.my_term_id, M.cancel_command_char_sequence)
     vim.fn.chansend(M.my_term_id, current_line_trimed() .. "\n")
+	vim.fn.win_execute(M.term_win, "normal! G")
 end
 
 function M.inspect()
@@ -127,6 +129,13 @@ function M.inspect()
     vim.fn.chansend(M.my_term_id, "\nprint(" .. current_line_trimed() .. ")\n")
 end
 
+
+function M.set_command_to_test_of_current_line()
+	M.term_command = M.base_term_command
+	.. vim.fn.expand("%") 
+	.. "::"
+	.. current_line_trimed():match('def%s([A-Za-z1-9_]*).*$')
+end
 
 
 return M
