@@ -10,8 +10,24 @@ including tab completion.
 
 ![tddp usage](./doc/readme_show.gif)
 
-All commands showed in the video are present in the recommended 
-keymap.
+## Workflow
+
+These steps describe the workflow using the module function, 
+of course you are supposed to assign keymap to those. The 
+recommended ones are at the end of the readme.
+
+1. Write the test and a skeleton of a function you want
+2. Go to the line of the test you want to call and select it 
+   `open_debug_term()`
+3. Navigate to the function you want to code 
+4. Call `open_debug_term()` to insert the `IPython.embed()` line 
+   in the code, call the test and open the terminal
+5. Here you have acces to the instance of the test so you can 
+   use it as a notebook, you can call `run_selected_text()` to 
+   execute selected lines or `complete()` to show the autocomplete
+   of the repl of the current line
+6. Call `close_debug_term()` to remove the `IPython.embed()` line
+   and close the terminal
 
 ## Install
 
